@@ -81,7 +81,7 @@ async function generateCommitMessage(
   const google = createGoogleGenerativeAI({ apiKey });
 
   const { text } = await generateText({
-    model: google("gemini-3-pro-preview"),
+    model: google("gemini-2.5-flash"),
     prompt: `You are a commit message generator following Conventional Commits specification.
 
 Format:
@@ -195,18 +195,14 @@ async function main() {
   clearInterval(spin2);
   process.stdout.write(`\r${c.green}[2/2]${c.reset} Generating commit message ${c.dim}done${c.reset}\n`);
 
-  const lines = commitMessage.trim().split("\n");
-  const title = lines[0];
-  const body = lines.slice(2).join("\n").trim();
+  const escaped = commitMessage
+    .trim()
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, "\\n");
 
   console.log(`\n${c.dim}${"─".repeat(50)}${c.reset}\n`);
-  
-  let cmd = `git commit -m "${title.replace(/"/g, '\\"')}"`;
-  if (body) {
-    cmd += ` -m "${body.replace(/"/g, '\\"')}"`;
-  }
-  
-  console.log(cmd);
+  console.log(`git commit -m $'${escaped}'`);
   console.log(`\n${c.dim}${"─".repeat(50)}${c.reset}`);
 }
 
