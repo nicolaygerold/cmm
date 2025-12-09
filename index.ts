@@ -195,14 +195,17 @@ async function main() {
   clearInterval(spin2);
   process.stdout.write(`\r${c.green}[2/2]${c.reset} Generating commit message ${c.dim}done${c.reset}\n`);
 
-  const escaped = commitMessage
+  const parts = commitMessage
     .trim()
-    .replace(/\\/g, "\\\\")
-    .replace(/'/g, "\\'")
-    .replace(/\n/g, "\\n");
+    .split(/\n\n+/)
+    .map((p) => p.replace(/\n/g, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  const escape = (s: string) => s.replace(/'/g, "'\\''");
 
   console.log(`\n${c.dim}${"─".repeat(50)}${c.reset}\n`);
-  console.log(`git commit -m $'${escaped}'`);
+  const cmd = parts.map((p) => `-m '${escape(p)}'`).join(" \\\n   ");
+  console.log(`git commit ${cmd}`);
   console.log(`\n${c.dim}${"─".repeat(50)}${c.reset}`);
 }
 
