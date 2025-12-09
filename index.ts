@@ -186,13 +186,18 @@ async function main() {
 
   console.log(`\n${c.dim}${"─".repeat(50)}${c.reset}\n`);
 
+  const cmd = parts.map((p) => `-m '${escape(p)}'`).join(" \\\n   ");
+  console.log(`git commit ${cmd}`);
+  console.log(`\n${c.dim}${"─".repeat(50)}${c.reset}`);
+
   if (flags.edit) {
     if (!fullDiff.staged) {
       console.log(`${c.yellow}No staged changes to commit.${c.reset} Stage changes first with ${c.cyan}git add${c.reset}`);
       process.exit(1);
     }
     const tmpFile = join(homedir(), ".config", "cmm", ".commit_msg_tmp");
-    await Bun.write(tmpFile, commitMessage.trim());
+    const messageForFile = parts.length > 0 ? parts.join("\n\n") : commitMessage.trim();
+    await Bun.write(tmpFile, messageForFile);
     console.log(`${c.cyan}Opening commit editor...${c.reset}\n`);
     const result = await Bun.spawn(["git", "commit", "-e", "-F", tmpFile], {
       stdin: "inherit",
@@ -202,10 +207,6 @@ async function main() {
     await Bun.spawn(["rm", "-f", tmpFile]).exited;
     process.exit(result);
   }
-
-  const cmd = parts.map((p) => `-m '${escape(p)}'`).join(" \\\n   ");
-  console.log(`git commit ${cmd}`);
-  console.log(`\n${c.dim}${"─".repeat(50)}${c.reset}`);
 }
 
 main().catch(console.error);
