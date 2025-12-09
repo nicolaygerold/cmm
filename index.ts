@@ -82,45 +82,24 @@ async function generateCommitMessage(
 
   const { text } = await generateText({
     model: google("gemini-2.5-flash"),
-    prompt: `You are a commit message generator following Conventional Commits specification.
+    prompt: `Generate a concise commit message following Conventional Commits.
 
-Format:
-<type>(<optional scope>): <Description>
+Format: <type>(<optional scope>): <description>
 
-<optional body>
-
-<optional footer>
-
-Types:
-- feat: add/adjust/remove a feature
-- fix: bug fix
-- refactor: code restructure without behavior change
-- perf: performance improvement
-- style: formatting, whitespace (no behavior change)
-- test: add/correct tests
-- docs: documentation only
-- build: build tools, dependencies, CI/CD
-- ops: infrastructure, deployment
-- chore: misc tasks (.gitignore, init, etc.)
+Types: feat, fix, refactor, perf, style, test, docs, build, ops, chore
 
 Rules:
-- Use imperative mood: "Add" not "Added" or "Adds"
-- Test: subject should complete "If applied, this commit will <subject>"
-- Capitalize the description after the colon
-- Do NOT end subject with period
-- Add ! before : for breaking changes (e.g., feat!: or feat(api)!:)
-- Keep subject line under 50 chars total (72 hard limit)
-- Wrap body at 72 characters per line
-- Body: explain WHAT changed and WHY, not HOW (code shows how)
-- Focus on the main logical change, ignore trivial helpers
-- One commit = one logical change (atomic)
-- Don't assume reader knows context; briefly explain the problem
-- Footer: reference issues if relevant (Closes #123)
+- Imperative mood: "Add" not "Added"
+- No period at end
+- Under 50 chars (72 hard limit)
+- Add ! before : for breaking changes
+- KEEP IT SHORT: One line is usually enough. Only add a body if the change is complex and truly needs explanation.
+- Do NOT explain obvious changes. The diff speaks for itself.
 
 Git diff:
 ${combinedDiff}
 
-Generate the commit message (raw text, no markdown code blocks):`,
+Generate ONLY the commit message (raw text, no markdown):`,
   });
 
   return text;
@@ -136,12 +115,13 @@ function spinner() {
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const flags = { staged: false, unstaged: false, help: false };
+  const flags = { staged: false, unstaged: false, help: false, edit: false };
   
   for (const arg of args) {
     if (arg === "-s" || arg === "--staged") flags.staged = true;
     if (arg === "-u" || arg === "--unstaged") flags.unstaged = true;
     if (arg === "-h" || arg === "--help") flags.help = true;
+    if (arg === "-e" || arg === "--edit") flags.edit = true;
   }
   
   if (!flags.staged && !flags.unstaged) {
@@ -161,6 +141,7 @@ async function main() {
     console.log(`${c.cyan}Options:${c.reset}`);
     console.log(`  -s, --staged     Only analyze staged changes`);
     console.log(`  -u, --unstaged   Only analyze unstaged changes`);
+    console.log(`  -e, --edit       Open commit editor with prefilled message`);
     console.log(`  -h, --help       Show this help message\n`);
     console.log(`${c.dim}By default, both staged and unstaged changes are analyzed.${c.reset}`);
     process.exit(0);
@@ -204,6 +185,24 @@ async function main() {
   const escape = (s: string) => s.replace(/'/g, "'\\''");
 
   console.log(`\n${c.dim}${"─".repeat(50)}${c.reset}\n`);
+
+  if (flags.edit) {
+    if (!fullDiff.staged) {
+      console.log(`${c.yellow}No staged changes to commit.${c.reset} Stage changes first with ${c.cyan}git add${c.reset}`);
+      process.exit(1);
+    }
+    const tmpFile = join(homedir(), ".config", "cmm", ".commit_msg_tmp");
+    await Bun.write(tmpFile, commitMessage.trim());
+    console.log(`${c.cyan}Opening commit editor...${c.reset}\n`);
+    const result = await Bun.spawn(["git", "commit", "-e", "-F", tmpFile], {
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+    }).exited;
+    await Bun.spawn(["rm", "-f", tmpFile]).exited;
+    process.exit(result);
+  }
+
   const cmd = parts.map((p) => `-m '${escape(p)}'`).join(" \\\n   ");
   console.log(`git commit ${cmd}`);
   console.log(`\n${c.dim}${"─".repeat(50)}${c.reset}`);
