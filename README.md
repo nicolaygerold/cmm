@@ -16,6 +16,7 @@ This installs deps and links `cmm` globally. First run will ask for your [Google
 cmm           # analyze both staged and unstaged
 cmm -s        # staged only
 cmm -u        # unstaged only
+cmm -e        # creates a temp file with the generated commit message, requires staged changes
 cmm -h        # help
 ```
 
@@ -24,4 +25,3 @@ Run it in any git repo with changes. Outputs a commit message following conventi
 ## Tailor to your needs
 
 The prompt lives in `index.ts`. Tweak the commit types, rules, or style to match your project conventions.
-
