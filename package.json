@@ -1,0 +1,23 @@
+{
+  "name": "cmm",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "cmm": "./index.ts"
+  },
+  "scripts": {
+    "start": "bun run index.ts",
+    "setup": "bun install && bun link"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^2.0.45",
+    "ai": "^5.0.108"
+  }
+}
